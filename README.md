@@ -143,8 +143,6 @@ flowchart TD
 
 ## Engineering-realism notes
 
-Things that mattered to make this survive real use rather than demo nicely:
-
 - **Event-driven, stateless flows.** State lives on the SharePoint record, not in the
   flow. Any run can pick up a record at whatever stage it's in — which is what lets one
   orchestrator cover the entire lifecycle instead of a chain of brittle hand-offs.
