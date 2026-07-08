@@ -1,0 +1,6 @@
+flowchart TD
+    T["Trigger: vendor resignation email"] --> P["HTML &rarr; text<br/>extract employee ID + date of resignation<br/>reformat date"]
+    P --> G["Get matching rows from headcount/budget list"]
+    G --> L["For each match"]
+    L --> C{Record found?}
+    C -->|Yes| U["Update item: mark resignation + date"]

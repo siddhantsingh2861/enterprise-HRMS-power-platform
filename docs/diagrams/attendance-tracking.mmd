@@ -1,0 +1,8 @@
+flowchart TD
+    T["Trigger: attendance data email"] --> P["Compose table details + chunk the payload<br/>compute dynamic column counts"]
+    P --> L["For each chunk"]
+    L --> G["Get list items"]
+    G --> L2["For each row"]
+    L2 --> CI["Create attendance item"]
+    CI --> C{Write ok?}
+    C -->|Yes| R["Reply to email + update item<br/>&rarr; compose confirmation card (ID / Name / HQ)"]

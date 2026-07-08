@@ -1,0 +1,9 @@
+flowchart TD
+    T["Trigger: file created / modified<br/>in document library"] --> C{Pending review?}
+    C -->|Yes| A["Start &amp; wait for approval"]
+    A --> D{Approved?}
+    D -->|Yes| Y["Set content-approval status = Approved"]
+    D -->|No| N["Set status = Rejected<br/>&rarr; email uploader via shared mailbox"]
+    C -->|No| Z["Compose folder path, shareable link,<br/>leaf name &amp; mail ID"]
+    Y --> Z
+    N --> Z

@@ -1,0 +1,4 @@
+flowchart TD
+    T["Trigger: HTTP request received"] --> C["Compose joining-kit details from payload"]
+    C --> RS["Respond to caller"]
+    RS --> E["Send confirmation email"]

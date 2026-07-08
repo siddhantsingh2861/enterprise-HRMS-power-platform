@@ -1,0 +1,8 @@
+flowchart TD
+    T["Trigger: new joiner alert email"] --> P["HTML &rarr; text, normalize body<br/>compose employee ID + mail ID"]
+    P --> F["Filter to the matching joiner"]
+    F --> G["Get record from headcount/budget list<br/>+ candidate details"]
+    G --> GEN["Generate HRIS import templates as CSV:<br/>biographical · person-info · employment history<br/>job history · e-code UDF"]
+    GEN --> CF["Create the CSV files in SharePoint"]
+    CF --> M["Email the onboarding package (shared mailbox)"]
+    M --> U["Update the record status"]

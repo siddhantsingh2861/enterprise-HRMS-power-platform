@@ -1,0 +1,43 @@
+flowchart TB
+    subgraph UI["Interfaces"]
+        PA["HR Portal<br/>Power Apps canvas app"]
+        MB["Shared mailboxes<br/>vendor / HRIS alert emails"]
+        API["HTTP endpoints<br/>form submissions"]
+    end
+
+    subgraph ORCH["Automation layer — Power Automate"]
+        HRMS["HRMS Orchestrator<br/>lifecycle state machine"]
+        CDA["Candidate Document<br/>Approval"]
+        MID["Mail-ID &amp; Onboarding"]
+        TOR["Off-roll Resignation<br/>Tracker"]
+        ATT["Attendance Tracking"]
+        CHR["Capture HTTP Request"]
+        CJK["Capture Joining-Kit<br/>Details"]
+    end
+
+    subgraph DATA["Data &amp; services"]
+        SP["SharePoint lists &amp; libraries<br/>Employee master · Headcount/Budget<br/>Candidate details · Attendance · Docs"]
+        APR["Microsoft Approvals"]
+        OUT["Outlook 365<br/>shared-mailbox notifications"]
+        DOC["Word template &rarr; PDF<br/>Word Online + OneDrive"]
+        HRIS["Downstream HRIS / payroll<br/>CSV import templates"]
+        PBI["Power BI<br/>dashboards"]
+    end
+
+    PA --> CHR --> SP
+    PA --> CJK --> OUT
+    PA --> SP
+    SP --> HRMS
+    HRMS --> APR
+    HRMS --> OUT
+    HRMS --> DOC
+    HRMS --> SP
+    SP --> CDA --> APR
+    CDA --> OUT
+    MB --> MID --> SP
+    MID --> HRIS
+    MID --> OUT
+    MB --> TOR --> SP
+    MB --> ATT --> SP
+    ATT --> OUT
+    SP --> PBI

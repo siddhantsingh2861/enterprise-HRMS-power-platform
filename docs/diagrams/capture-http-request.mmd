@@ -1,0 +1,7 @@
+flowchart TD
+    T["Trigger: HTTP request received"] --> RS["Respond to caller"]
+    RS --> C["Compose Name + ID from payload"]
+    C --> G["Get matching list items"]
+    G --> L["For each match"]
+    L --> U["Update item"]
+    U --> E["Send confirmation email"]
