@@ -1,7 +1,7 @@
-# HRMS on Microsoft Power Platform — Architecture & Case Study
+# HRMS on Microsoft Power Platform - Architecture & Case Study
 
 A production HR management system I designed and built **end-to-end, solo**, on the
-Microsoft Power Platform — SharePoint as the data layer, a Power Apps canvas app as
+Microsoft Power Platform - SharePoint as the data layer, a Power Apps canvas app as
 the front end, **Power Automate as the automation/orchestration layer**, and Power BI
 for reporting. It runs the full employee lifecycle for an enterprise HR team: hiring,
 onboarding, separation, headcount, attendance, and downstream HRIS integration.
