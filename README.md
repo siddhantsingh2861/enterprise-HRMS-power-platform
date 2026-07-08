@@ -110,7 +110,7 @@ diagrams are in **[docs/FLOWS.md](docs/FLOWS.md)**.
 | **Mail-ID & Onboarding** | New joiner alert email | Parses the joiner email, matches the record, generates the standard HRIS import templates (biographical, person-info, employment history, job history, e-code UDF) as CSV files, and requests mail-ID creation | SharePoint, Outlook, HTML→text conversion |
 | **Off-roll Resignation Tracker** | Resignation alert email (staffing vendor) | Extracts the employee ID and resignation date from the vendor email and updates the headcount/budget list | SharePoint, Outlook, HTML→text conversion |
 | **Attendance Tracking** | Attendance data email | Parses the attendance payload, writes rows to the attendance list, and replies with a confirmation adaptive card | SharePoint, Outlook |
-| **Capture HTTP Request** | HTTP request (called from the app) | Endpoint that updates a record and emails a confirmation — lets the Power App trigger server-side work | SharePoint, Outlook |
+| **Capture HTTP Request** | HTTP request (called from the app) | Endpoint that updates an employee interaction on an actionable card (outlook) and emails a joining confirmation - lets the Power App trigger server-side work | SharePoint, Outlook |
 | **Capture Joining-Kit Details** | HTTP request (called from the app) | Lightweight endpoint that captures joining-kit form details and sends a confirmation | Outlook |
 
 ---
