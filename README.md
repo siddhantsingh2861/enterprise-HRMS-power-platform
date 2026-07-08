@@ -7,7 +7,7 @@ for reporting. It runs the full employee lifecycle for an enterprise HR team: hi
 onboarding, separation, headcount, attendance, and downstream HRIS integration.
 
 This repository is a **sanitized architecture case study**. It documents *how the system
-is designed and how the automation works* — it contains no company data, no
+is designed and how the automation works* - it contains no company data, no
 credentials, no tenant/site identifiers, and no runnable solution package. See
 [Sanitization & scope](#sanitization--scope).
 
@@ -28,7 +28,7 @@ nothing was auditable.
 
 A single SharePoint-backed system where every position/employee record has a
 **lifecycle state**, and a set of Power Automate flows react to state changes and
-inbound signals to do the work automatically — routing approvals, generating documents,
+inbound signals to do the work automatically - routing approvals, generating documents,
 creating vacancies, notifying stakeholders, and syncing to the downstream HRIS.
 
 ## Reported outcomes
@@ -52,7 +52,7 @@ flowchart TB
         API["HTTP endpoints<br/>form submissions"]
     end
 
-    subgraph ORCH["Automation layer — Power Automate"]
+    subgraph ORCH["Automation layer - Power Automate"]
         HRMS["HRMS Orchestrator<br/>lifecycle state machine"]
         CDA["Candidate Document<br/>Approval"]
         MID["Mail-ID &amp; Onboarding"]
@@ -90,7 +90,7 @@ flowchart TB
     SP --> PBI
 ```
 
-**Design choice — SharePoint as the state store.** Each position/employee row carries a
+**Design choice - SharePoint as the state store.** Each position/employee row carries a
 lifecycle status (on-roll / off-roll × offered / accepted / joined / resigned / exited).
 The orchestrator treats that status as the single source of truth and is *event-driven*:
 it fires on create/modify and branches on state, so the same record can move through its
@@ -105,7 +105,7 @@ diagrams are in **[docs/FLOWS.md](docs/FLOWS.md)**.
 
 | Flow | Trigger | What it does | Key connectors |
 | --- | --- | --- | --- |
-| **HRMS Orchestrator** | SharePoint item created/modified | The lifecycle state machine — routes hiring approvals, generates the offer + mail-ID documents, creates vacancies on separation, and posts onboarding announcements, for both on-roll and off-roll employees | SharePoint, Approvals, Outlook, Word Online, OneDrive, Office 365 Users |
+| **HRMS Orchestrator** | SharePoint item created/modified | The lifecycle state machine - routes hiring approvals, generates the offer + mail-ID documents, creates vacancies on separation, and posts onboarding announcements, for both on-roll and off-roll employees | SharePoint, Approvals, Outlook, Word Online, OneDrive, Office 365 Users |
 | **Candidate Document Approval** | File created/modified in a document library | Sends an approval for an uploaded candidate document; on approve/reject sets SharePoint content-approval status and notifies via shared mailbox | SharePoint, Approvals, Outlook |
 | **Mail-ID & Onboarding** | New joiner alert email | Parses the joiner email, matches the record, generates the standard HRIS import templates (biographical, person-info, employment history, job history, e-code UDF) as CSV files, and requests mail-ID creation | SharePoint, Outlook, HTML→text conversion |
 | **Off-roll Resignation Tracker** | Resignation alert email (staffing vendor) | Extracts the employee ID and resignation date from the vendor email and updates the headcount/budget list | SharePoint, Outlook, HTML→text conversion |
@@ -144,7 +144,7 @@ flowchart TD
 ## Engineering-realism notes
 
 - **Event-driven, stateless flows.** State lives on the SharePoint record, not in the
-  flow. Any run can pick up a record at whatever stage it's in — which is what lets one
+  flow. Any run can pick up a record at whatever stage it's in - which is what lets one
   orchestrator cover the entire lifecycle instead of a chain of brittle hand-offs.
 - **Human-in-the-loop where it counts.** Offers and candidate documents route through
   Microsoft Approvals and only mutate state on an explicit decision; rejections notify
@@ -155,7 +155,7 @@ flowchart TD
 - **Downstream-system realism.** The onboarding flow emits the exact CSV import
   templates the HRIS/payroll system expects, so joiners flow through without re-keying.
 - **Signals from the real world.** Several flows are driven by inbound vendor/HRIS
-  emails (resignations, attendance, joiners) — parsed HTML→text, normalized, and matched
+  emails (resignations, attendance, joiners) - parsed HTML→text, normalized, and matched
   back to records, because that's how the upstream systems actually communicate.
 - **Idempotency-minded writes.** Lookups (get-items → apply-to-each → patch) are scoped
   so a re-trigger updates the intended record rather than duplicating it.
@@ -191,7 +191,7 @@ This repo is documentation, produced from **sanitized** flow exports:
 - **Generalized:** list names, mailbox names, and organization-specific policy logic are
   described by role/function, not reproduced verbatim.
 - **Not included:** any employee data, any credentials, and any importable solution
-  package — nothing here can be deployed against the original system.
+  package - nothing here can be deployed against the original system.
 
 The intent is to show *architecture and engineering approach*, not to redistribute an
 employer's internal system.
