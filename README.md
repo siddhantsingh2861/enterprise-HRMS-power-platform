@@ -193,5 +193,4 @@ This repo is documentation, produced from **sanitized** flow exports:
 - **Not included:** any employee data, any credentials, and any importable solution
   package - nothing here can be deployed against the original system.
 
-The intent is to show *architecture and engineering approach*, not to redistribute an
-employer's internal system.
+The intent is to show *architecture and engineering approach* only.
