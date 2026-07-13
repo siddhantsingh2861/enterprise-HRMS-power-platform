@@ -153,10 +153,10 @@ flowchart TD
   populating a Word template and converting to PDF, so output is consistent and
   branded rather than hand-assembled.
 - **Downstream-system realism.** The onboarding flow emits the exact CSV import
-  templates the HRIS/payroll system expects, so joiners flow through without re-keying.
-- **Signals from the real world.** Several flows are driven by inbound vendor/HRIS
+  templates Successfactor & HGS expects, so joiners flow through without re-keying.
+- **Signals from the real world.** Several flows are driven by inbound mails
   emails (resignations, attendance, joiners) - parsed HTML→text, normalized, and matched
-  back to records, because that's how the upstream systems actually communicate.
+  back to records.
 - **Idempotency-minded writes.** Lookups (get-items → apply-to-each → patch) are scoped
   so a re-trigger updates the intended record rather than duplicating it.
 
