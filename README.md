@@ -95,7 +95,8 @@ lifecycle status (on-roll / off-roll × offered / accepted / joined / resigned /
 The orchestrator treats that status as the single source of truth and is *event-driven*:
 it fires on create/modify and branches on state, so the same record can move through its
 whole lifecycle without any flow needing to "remember" context between runs.
-*CURRENTLY WORKING ON UPDATING THE FLOWS WITH BETTER REPRESENTATION AND EXPLAINATION*
+
+**CURRENTLY WORKING ON UPDATING THE FLOWS WITH BETTER REPRESENTATION AND EXPLAINATION**
 ---
 
 ## The flows
