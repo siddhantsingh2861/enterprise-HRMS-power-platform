@@ -1,8 +1,26 @@
 flowchart TD
-    T["Trigger: attendance data email"] --> P["Compose table details + chunk the payload<br/>compute dynamic column counts"]
-    P --> L["For each chunk"]
-    L --> G["Get list items"]
-    G --> L2["For each row"]
-    L2 --> CI["Create attendance item"]
-    CI --> C{Write ok?}
-    C -->|Yes| R["Reply to email + update item<br/>&rarr; compose confirmation card (ID / Name / HQ)"]
+    T(["Attendance data email"]):::trigger --> P["Compose table details<br/>chunk the payload · compute column counts"]:::action
+    P --> G
+
+    subgraph CHUNK["Apply to each chunk"]
+        G["Get list items"]:::action
+        G --> CI
+
+        subgraph ROW["Apply to each row"]
+            CI[("Create attendance item")]:::data
+            CI --> C{"Write ok?"}:::decision
+            C -->|Yes| R("Reply to email<br/>+ update item"):::notify
+            R --> CC["Compose confirmation card<br/>ID · Name · HQ"]:::action
+            C -->|No| S(["No action"]):::noop
+        end
+    end
+
+    style CHUNK fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+    style ROW fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b

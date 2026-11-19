@@ -1,8 +1,16 @@
 flowchart TD
-    T["Trigger: new joiner alert email"] --> P["HTML &rarr; text, normalize body<br/>compose employee ID + mail ID"]
-    P --> F["Filter to the matching joiner"]
-    F --> G["Get record from headcount/budget list<br/>+ candidate details"]
-    G --> GEN["Generate HRIS import templates as CSV:<br/>biographical · person-info · employment history<br/>job history · e-code UDF"]
-    GEN --> CF["Create the CSV files in SharePoint"]
-    CF --> M["Email the onboarding package (shared mailbox)"]
-    M --> U["Update the record status"]
+    T(["New-joiner alert email"]):::trigger --> P["HTML → text, normalize body<br/>compose employee ID + mail ID"]:::action
+    P --> F["Filter to the matching joiner"]:::action
+    F --> G["Get record from headcount/budget list<br/>+ candidate details"]:::action
+    G --> CSV["Generate HRIS import templates as CSV<br/>biographical · person info · employment history<br/>job history · e-code UDF"]:::action
+    CSV --> CF[("Create the CSV files<br/>in SharePoint")]:::data
+    CF --> M("Email onboarding package<br/>from shared mailbox"):::notify
+    M --> U[("Update record status")]:::data
+
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b

@@ -1,4 +1,11 @@
 flowchart TD
-    T["Trigger: HTTP request received"] --> C["Compose joining-kit details from payload"]
-    C --> RS["Respond to caller"]
-    RS --> E["Send confirmation email"]
+    T(["HTTP request<br/>from the Power App"]):::trigger --> C["Compose joining-kit details<br/>from payload"]:::action
+    C --> RS["Respond to caller"]:::action
+    RS --> E("Send confirmation email"):::notify
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b

@@ -1,7 +1,19 @@
 flowchart TD
-    T["Trigger: HTTP request received"] --> RS["Respond to caller"]
-    RS --> C["Compose Name + ID from payload"]
-    C --> G["Get matching list items"]
-    G --> L["For each match"]
-    L --> U["Update item"]
-    U --> E["Send confirmation email"]
+    T(["HTTP request<br/>from the Power App"]):::trigger --> RS["Respond to caller"]:::action
+    RS --> C["Compose name + ID<br/>from payload"]:::action
+    C --> G["Get matching list items"]:::action
+    G --> U
+
+    subgraph LOOP["Apply to each match"]
+        U[("Update item")]:::data
+        U --> E("Send confirmation email"):::notify
+    end
+
+    style LOOP fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b

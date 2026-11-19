@@ -1,20 +1,52 @@
 flowchart TD
-    T["Trigger: employee / position record<br/>created or modified"] --> R{On-roll or Off-roll?}
+    T(["Employee / position record<br/>created or modified"]):::trigger --> R{"On-roll or<br/>off-roll?"}:::decision
 
-    R -->|On-roll| ON{Lifecycle status?}
-    ON -->|Resigned| ON1["Collect exit docs NOC / NDC / exit process<br/>&rarr; email exit mailer to HR + payroll<br/>&rarr; create vacant position<br/>&rarr; compute notice-period details"]
-    ON -->|Exited| ON2["Create vacant position"]
-    ON -->|Offer initiated| ON3["Compose candidate details + salary breakup<br/>&rarr; start &amp; wait for approval"]
-    ON3 --> ON3a{Approved?}
-    ON3a -->|Yes| ON3y["Update record as approved<br/>&rarr; send offer email"]
-    ON3a -->|No| ON3n["Update record as rejected"]
-    ON3y --> ON3z["Send offer-alert notification"]
-    ON3n --> ON3z
-    ON -->|Offer rejected| ON4["Create vacant position"]
-    ON -->|Accepted + joined| ON5["Email joining confirmation (CSV summary)<br/>&rarr; populate Word template &rarr; convert to PDF<br/>&rarr; email IT for mail-ID creation<br/>&rarr; look up reporting manager"]
+    R -->|On-roll| ON
+    R -->|Off-roll| OFF
 
-    R -->|Off-roll| OFF{Lifecycle status?}
-    OFF -->|Resigned| OFF1["Create vacant position"]
-    OFF -->|Exited| OFF2["Create vacant position"]
-    OFF -->|Offered| OFF3["Create SharePoint document set<br/>&rarr; copy form attachments via HTTP to SharePoint<br/>&rarr; notify"]
-    OFF -->|Joined + active| OFF4["Send welcome / announcement adaptive card"]
+    subgraph ONROLL[" "]
+        ON{"Lifecycle<br/>status?"}:::decision
+
+        ON -->|Resigned| ON1["Collect exit docs<br/>NOC · NDC · exit process"]:::action
+        ON1 --> ON1b("Email exit mailer<br/>to HR + payroll"):::notify
+        ON1b --> ON1c[("Create vacant position")]:::data
+        ON1c --> ON1d["Compute notice-period details"]:::action
+
+        ON -->|"Exited / offer rejected"| VAC1[("Create vacant position")]:::data
+
+        ON -->|Offer initiated| ON3["Compose candidate details<br/>+ salary breakup"]:::action
+        ON3 --> ON3w["Start &amp; wait for approval"]:::action
+        ON3w --> ON3a{"Approved?"}:::decision
+        ON3a -->|Yes| ON3y[("Mark record approved")]:::data
+        ON3y --> ON3e("Send offer email"):::notify
+        ON3a -->|No| ON3n[("Mark record rejected")]:::data
+        ON3e --> ON3z("Send offer-alert notification"):::notify
+        ON3n --> ON3z
+
+        ON -->|Accepted + joined| ON5("Email joining confirmation<br/>CSV summary"):::notify
+        ON5 --> ON5b["Populate Word template<br/>→ convert to PDF"]:::action
+        ON5b --> ON5c("Email IT for<br/>mail-ID creation"):::notify
+        ON5c --> ON5d["Look up reporting manager"]:::action
+    end
+
+    subgraph OFFROLL[" "]
+        OFF{"Lifecycle<br/>status?"}:::decision
+
+        OFF -->|"Resigned / exited"| VAC2[("Create vacant position")]:::data
+
+        OFF -->|Offered| OFF3[("Create SharePoint<br/>document set")]:::data
+        OFF3 --> OFF3b["Copy form attachments<br/>to SharePoint via HTTP"]:::action
+        OFF3b --> OFF3c("Notify"):::notify
+
+        OFF -->|Joined + active| OFF4("Send welcome /<br/>announcement adaptive card"):::notify
+    end
+
+    style ONROLL fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+    style OFFROLL fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b

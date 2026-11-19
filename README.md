@@ -48,46 +48,50 @@ creating vacancies, notifying stakeholders, and syncing to the downstream HRIS.
 flowchart TB
     subgraph UI["Interfaces"]
         PA["HR Portal<br/>Power Apps canvas app"]
-        MB["Shared mailboxes<br/>vendor / HRIS alert emails"]
         API["HTTP endpoints<br/>form submissions"]
+        MB["Shared mailboxes<br/>vendor / HRIS alert emails"]
     end
 
-    subgraph ORCH["Automation layer - Power Automate"]
-        HRMS["HRMS Orchestrator<br/>lifecycle state machine"]
-        CDA["Candidate Document<br/>Approval"]
-        MID["Mail-ID &amp; Onboarding"]
-        TOR["Off-roll Resignation<br/>Tracker"]
-        ATT["Attendance Tracking"]
+    subgraph ORCH["Automation layer — Power Automate (7 flows)"]
         CHR["Capture HTTP Request"]
-        CJK["Capture Joining-Kit<br/>Details"]
+        CJK["Capture Joining-Kit Details"]
+        HRMS["HRMS Orchestrator<br/>lifecycle state machine"]
+        CDA["Candidate Document Approval"]
+        MID["Mail-ID &amp; Onboarding"]
+        TOR["Off-roll Resignation Tracker"]
+        ATT["Attendance Tracking"]
     end
 
-    subgraph DATA["Data &amp; services"]
-        SP["SharePoint lists &amp; libraries<br/>Employee master · Headcount/Budget<br/>Candidate details · Attendance · Docs"]
+    SP[("SharePoint — system of record<br/>Employee master · Headcount/Budget<br/>Candidate details · Attendance · Docs")]
+
+    subgraph SVC["Services"]
         APR["Microsoft Approvals"]
+        DOC["Word template → PDF<br/>Word Online + OneDrive"]
         OUT["Outlook 365<br/>shared-mailbox notifications"]
-        DOC["Word template &rarr; PDF<br/>Word Online + OneDrive"]
         HRIS["Downstream HRIS / payroll<br/>CSV import templates"]
-        PBI["Power BI<br/>dashboards"]
     end
 
-    PA --> CHR --> SP
-    PA --> CJK --> OUT
-    PA --> SP
-    SP --> HRMS
-    HRMS --> APR
-    HRMS --> OUT
+    PBI["Power BI dashboards"]
+
+    PA --> API
+    API --> CHR & CJK
+    MB --> MID & TOR & ATT
+    PA <-->|"reads / writes"| SP
+
+    ORCH <==>|"records"| SP
+    SP -.->|"item change triggers"| HRMS & CDA
+
+    HRMS & CDA --> APR
     HRMS --> DOC
-    HRMS --> SP
-    SP --> CDA --> APR
-    CDA --> OUT
-    MB --> MID --> SP
     MID --> HRIS
-    MID --> OUT
-    MB --> TOR --> SP
-    MB --> ATT --> SP
-    ATT --> OUT
+    ORCH ==>|"notifications"| OUT
+
     SP --> PBI
+
+    style UI fill:#eff6ff,stroke:#93c5fd,color:#1e3a8a
+    style ORCH fill:#f0fdf4,stroke:#86efac,color:#14532d
+    style SVC fill:#f5f3ff,stroke:#c4b5fd,color:#4c1d95
+    style SP fill:#ede9fe,stroke:#6d28d9,color:#0f172a
 ```
 
 **Design choice - SharePoint as the state store.** Each position/employee row carries a
@@ -96,7 +100,6 @@ The orchestrator treats that status as the single source of truth and is *event-
 it fires on create/modify and branches on state, so the same record can move through its
 whole lifecycle without any flow needing to "remember" context between runs.
 
-**CURRENTLY WORKING ON UPDATING THE FLOWS WITH BETTER REPRESENTATION AND EXPLAINATION**
 ---
 
 ## The flows
@@ -118,26 +121,35 @@ diagrams are in **[docs/FLOWS.md](docs/FLOWS.md)**.
 
 ## How the orchestrator works
 
-The flagship flow is a nested decision tree over the employee lifecycle. Simplified:
+The flagship flow is a nested decision tree over the employee lifecycle. Simplified view below;
+the step-by-step version is in [docs/FLOWS.md](docs/FLOWS.md#1-hrms-orchestrator).
 
 ```mermaid
 flowchart TD
-    T["Trigger: employee / position record<br/>created or modified"] --> R{On-roll or Off-roll?}
+    T(["Employee / position record<br/>created or modified"]):::trigger --> R{"On-roll or<br/>off-roll?"}:::decision
 
-    R -->|On-roll| ON{Lifecycle status?}
-    ON -->|Resigned| ON1["Collect exit docs NOC/NDC/exit<br/>&rarr; email exit mailer<br/>&rarr; create vacant position<br/>&rarr; compute notice period"]
-    ON -->|Exited| ON2["Create vacant position"]
-    ON -->|Offer initiated| ON3["Build candidate + salary breakup<br/>&rarr; start approval"]
-    ON3 --> ON3a{Approved?}
-    ON3a -->|Yes| ON3y["Update record &rarr; send offer email"]
-    ON3a -->|No| ON3n["Update record as rejected"]
-    ON -->|Offer rejected| ON4["Create vacant position"]
-    ON -->|Accepted + joined| ON5["Email joining confirmation<br/>&rarr; populate Word template &rarr; PDF<br/>&rarr; email IT for mail-ID creation<br/>&rarr; look up reporting manager"]
+    R -->|On-roll| ON{"Lifecycle<br/>status?"}:::decision
+    ON -->|Resigned| ON1["Exit docs → exit mailer<br/>→ vacancy → notice period"]:::action
+    ON -->|"Exited / offer rejected"| VAC1[("Create vacant position")]:::data
+    ON -->|Offer initiated| ON3["Salary breakup<br/>→ approval"]:::action
+    ON3 --> ON3a{"Approved?"}:::decision
+    ON3a -->|Yes| ON3y("Mark approved<br/>→ send offer email"):::notify
+    ON3a -->|No| ON3n[("Mark rejected")]:::data
+    ON3y --> ON3z("Offer-alert notification"):::notify
+    ON3n --> ON3z
+    ON -->|Accepted + joined| ON5["Joining confirmation → Word → PDF<br/>→ IT mail-ID request"]:::action
 
-    R -->|Off-roll| OFF{Lifecycle status?}
-    OFF -->|Resigned or Exited| OFF1["Create vacant position"]
-    OFF -->|Offered| OFF2["Create document set<br/>&rarr; copy attachments to SharePoint via HTTP<br/>&rarr; notify"]
-    OFF -->|Joined + active| OFF3["Send welcome / announcement card"]
+    R -->|Off-roll| OFF{"Lifecycle<br/>status?"}:::decision
+    OFF -->|"Resigned / exited"| VAC2[("Create vacant position")]:::data
+    OFF -->|Offered| OFF3["Document set<br/>→ copy attachments → notify"]:::action
+    OFF -->|Joined + active| OFF4("Welcome / announcement card"):::notify
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
 ```
 
 ---
@@ -154,8 +166,8 @@ flowchart TD
   populating a Word template and converting to PDF, so output is consistent and
   branded rather than hand-assembled.
 - **Downstream-system realism.** The onboarding flow emits the exact CSV import
-  templates Successfactor & HGS expects, so joiners flow through without re-keying.
-- **Signals from the real world.** Several flows are driven by inbound mails
+  templates SuccessFactors & HGS expect, so joiners flow through without re-keying.
+- **Signals from the real world.** Several flows are driven by inbound
   emails (resignations, attendance, joiners) - parsed HTML→text, normalized, and matched
   back to records.
 - **Idempotency-minded writes.** Lookups (get-items → apply-to-each → patch) are scoped
@@ -173,6 +185,7 @@ flowchart TD
     └── diagrams/                 ← Mermaid source for each diagram
         ├── system-architecture.mmd
         ├── hrms-orchestrator.mmd
+        ├── hrms-orchestrator-simplified.mmd
         ├── candidate-document-approval.mmd
         ├── mail-id-onboarding.mmd
         ├── offroll-resignation-tracker.mmd
