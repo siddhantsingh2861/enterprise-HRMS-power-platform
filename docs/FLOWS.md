@@ -14,6 +14,22 @@ described by role/function; identifiers and data have been removed.
 
 ---
 
+## How to read the diagrams
+
+| Shape / colour | Meaning |
+| --- | --- |
+| Blue pill | Trigger — what starts the flow |
+| Yellow diamond | Decision / condition |
+| Grey box | Processing step (compose, parse, look up) |
+| Purple cylinder | Write to SharePoint (create / update record) |
+| Green box | Outbound message — email, adaptive card, notification |
+| Dashed pill | Branch ends with no action |
+| Dashed frame | Loop (*Apply to each*) — steps inside repeat per item |
+
+Mermaid source for every diagram lives in [`docs/diagrams/`](diagrams/).
+
+---
+
 ## 1. HRMS Orchestrator
 
 **Trigger:** a SharePoint employee/position item is created or modified.
@@ -26,25 +42,57 @@ OneDrive · Office 365 Users.
 
 ```mermaid
 flowchart TD
-    T["Trigger: employee / position record<br/>created or modified"] --> R{On-roll or Off-roll?}
+    T(["Employee / position record<br/>created or modified"]):::trigger --> R{"On-roll or<br/>off-roll?"}:::decision
 
-    R -->|On-roll| ON{Lifecycle status?}
-    ON -->|Resigned| ON1["Collect exit docs NOC / NDC / exit process<br/>&rarr; email exit mailer to HR + payroll<br/>&rarr; create vacant position<br/>&rarr; compute notice-period details"]
-    ON -->|Exited| ON2["Create vacant position"]
-    ON -->|Offer initiated| ON3["Compose candidate details + salary breakup<br/>&rarr; start &amp; wait for approval"]
-    ON3 --> ON3a{Approved?}
-    ON3a -->|Yes| ON3y["Update record as approved<br/>&rarr; send offer email"]
-    ON3a -->|No| ON3n["Update record as rejected"]
-    ON3y --> ON3z["Send offer-alert notification"]
-    ON3n --> ON3z
-    ON -->|Offer rejected| ON4["Create vacant position"]
-    ON -->|Accepted + joined| ON5["Email joining confirmation (CSV summary)<br/>&rarr; populate Word template &rarr; convert to PDF<br/>&rarr; email IT for mail-ID creation<br/>&rarr; look up reporting manager"]
+    R -->|On-roll| ON
+    R -->|Off-roll| OFF
 
-    R -->|Off-roll| OFF{Lifecycle status?}
-    OFF -->|Resigned| OFF1["Create vacant position"]
-    OFF -->|Exited| OFF2["Create vacant position"]
-    OFF -->|Offered| OFF3["Create SharePoint document set<br/>&rarr; copy form attachments via HTTP to SharePoint<br/>&rarr; notify"]
-    OFF -->|Joined + active| OFF4["Send welcome / announcement adaptive card"]
+    subgraph ONROLL[" "]
+        ON{"Lifecycle<br/>status?"}:::decision
+
+        ON -->|Resigned| ON1["Collect exit docs<br/>NOC · NDC · exit process"]:::action
+        ON1 --> ON1b("Email exit mailer<br/>to HR + payroll"):::notify
+        ON1b --> ON1c[("Create vacant position")]:::data
+        ON1c --> ON1d["Compute notice-period details"]:::action
+
+        ON -->|"Exited / offer rejected"| VAC1[("Create vacant position")]:::data
+
+        ON -->|Offer initiated| ON3["Compose candidate details<br/>+ salary breakup"]:::action
+        ON3 --> ON3w["Start &amp; wait for approval"]:::action
+        ON3w --> ON3a{"Approved?"}:::decision
+        ON3a -->|Yes| ON3y[("Mark record approved")]:::data
+        ON3y --> ON3e("Send offer email"):::notify
+        ON3a -->|No| ON3n[("Mark record rejected")]:::data
+        ON3e --> ON3z("Send offer-alert notification"):::notify
+        ON3n --> ON3z
+
+        ON -->|Accepted + joined| ON5("Email joining confirmation<br/>CSV summary"):::notify
+        ON5 --> ON5b["Populate Word template<br/>→ convert to PDF"]:::action
+        ON5b --> ON5c("Email IT for<br/>mail-ID creation"):::notify
+        ON5c --> ON5d["Look up reporting manager"]:::action
+    end
+
+    subgraph OFFROLL[" "]
+        OFF{"Lifecycle<br/>status?"}:::decision
+
+        OFF -->|"Resigned / exited"| VAC2[("Create vacant position")]:::data
+
+        OFF -->|Offered| OFF3[("Create SharePoint<br/>document set")]:::data
+        OFF3 --> OFF3b["Copy form attachments<br/>to SharePoint via HTTP"]:::action
+        OFF3b --> OFF3c("Notify"):::notify
+
+        OFF -->|Joined + active| OFF4("Send welcome /<br/>announcement adaptive card"):::notify
+    end
+
+    style ONROLL fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+    style OFFROLL fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
 ```
 
 ---
@@ -59,14 +107,22 @@ content-approval status and notifies on rejection.
 
 ```mermaid
 flowchart TD
-    T["Trigger: file created / modified<br/>in document library"] --> C{Pending review?}
-    C -->|Yes| A["Start &amp; wait for approval"]
-    A --> D{Approved?}
-    D -->|Yes| Y["Set content-approval status = Approved"]
-    D -->|No| N["Set status = Rejected<br/>&rarr; email uploader via shared mailbox"]
-    C -->|No| Z["Compose folder path, shareable link,<br/>leaf name &amp; mail ID"]
+    T(["File created / modified<br/>in candidate-documents library"]):::trigger --> C{"Pending<br/>review?"}:::decision
+    C -->|Yes| A["Start &amp; wait for approval"]:::action
+    A --> D{"Approved?"}:::decision
+    D -->|Yes| Y[("Set content-approval<br/>status = Approved")]:::data
+    D -->|No| N[("Set content-approval<br/>status = Rejected")]:::data
+    N --> NM("Email uploader<br/>via shared mailbox"):::notify
+    C -->|No| Z["Compose folder path, shareable link,<br/>leaf name &amp; mail ID"]:::action
     Y --> Z
-    N --> Z
+    NM --> Z
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
 ```
 
 ---
@@ -81,13 +137,21 @@ mail-ID onboarding request.
 
 ```mermaid
 flowchart TD
-    T["Trigger: new joiner alert email"] --> P["HTML &rarr; text, normalize body<br/>compose employee ID + mail ID"]
-    P --> F["Filter to the matching joiner"]
-    F --> G["Get record from headcount/budget list<br/>+ candidate details"]
-    G --> GEN["Generate HRIS import templates as CSV:<br/>biographical · person-info · employment history<br/>job history · e-code UDF"]
-    GEN --> CF["Create the CSV files in SharePoint"]
-    CF --> M["Email the onboarding package (shared mailbox)"]
-    M --> U["Update the record status"]
+    T(["New-joiner alert email"]):::trigger --> P["HTML → text, normalize body<br/>compose employee ID + mail ID"]:::action
+    P --> F["Filter to the matching joiner"]:::action
+    F --> G["Get record from headcount/budget list<br/>+ candidate details"]:::action
+    G --> CSV["Generate HRIS import templates as CSV<br/>biographical · person info · employment history<br/>job history · e-code UDF"]:::action
+    CSV --> CF[("Create the CSV files<br/>in SharePoint")]:::data
+    CF --> M("Email onboarding package<br/>from shared mailbox"):::notify
+    M --> U[("Update record status")]:::data
+
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
 ```
 
 ---
@@ -102,11 +166,24 @@ manual entry.
 
 ```mermaid
 flowchart TD
-    T["Trigger: vendor resignation email"] --> P["HTML &rarr; text<br/>extract employee ID + date of resignation<br/>reformat date"]
-    P --> G["Get matching rows from headcount/budget list"]
-    G --> L["For each match"]
-    L --> C{Record found?}
-    C -->|Yes| U["Update item: mark resignation + date"]
+    T(["Resignation alert email<br/>from staffing vendor"]):::trigger --> P["HTML → text<br/>extract employee ID + resignation date<br/>reformat date"]:::action
+    P --> G["Get matching rows<br/>from headcount/budget list"]:::action
+    G --> C
+
+    subgraph LOOP["Apply to each match"]
+        C{"Record<br/>found?"}:::decision
+        C -->|Yes| U[("Mark resignation + date")]:::data
+        C -->|No| S(["No change"]):::noop
+    end
+
+    style LOOP fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
 ```
 
 ---
@@ -121,13 +198,31 @@ sender with an adaptive card.
 
 ```mermaid
 flowchart TD
-    T["Trigger: attendance data email"] --> P["Compose table details + chunk the payload<br/>compute dynamic column counts"]
-    P --> L["For each chunk"]
-    L --> G["Get list items"]
-    G --> L2["For each row"]
-    L2 --> CI["Create attendance item"]
-    CI --> C{Write ok?}
-    C -->|Yes| R["Reply to email + update item<br/>&rarr; compose confirmation card (ID / Name / HQ)"]
+    T(["Attendance data email"]):::trigger --> P["Compose table details<br/>chunk the payload · compute column counts"]:::action
+    P --> G
+
+    subgraph CHUNK["Apply to each chunk"]
+        G["Get list items"]:::action
+        G --> CI
+
+        subgraph ROW["Apply to each row"]
+            CI[("Create attendance item")]:::data
+            CI --> C{"Write ok?"}:::decision
+            C -->|Yes| R("Reply to email<br/>+ update item"):::notify
+            R --> CC["Compose confirmation card<br/>ID · Name · HQ"]:::action
+            C -->|No| S(["No action"]):::noop
+        end
+    end
+
+    style CHUNK fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+    style ROW fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
 ```
 
 ---
@@ -142,12 +237,24 @@ confirmation email in one call.
 
 ```mermaid
 flowchart TD
-    T["Trigger: HTTP request received"] --> RS["Respond to caller"]
-    RS --> C["Compose Name + ID from payload"]
-    C --> G["Get matching list items"]
-    G --> L["For each match"]
-    L --> U["Update item"]
-    U --> E["Send confirmation email"]
+    T(["HTTP request<br/>from the Power App"]):::trigger --> RS["Respond to caller"]:::action
+    RS --> C["Compose name + ID<br/>from payload"]:::action
+    C --> G["Get matching list items"]:::action
+    G --> U
+
+    subgraph LOOP["Apply to each match"]
+        U[("Update item")]:::data
+        U --> E("Send confirmation email"):::notify
+    end
+
+    style LOOP fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
 ```
 
 ---
@@ -162,7 +269,14 @@ confirmation.
 
 ```mermaid
 flowchart TD
-    T["Trigger: HTTP request received"] --> C["Compose joining-kit details from payload"]
-    C --> RS["Respond to caller"]
-    RS --> E["Send confirmation email"]
+    T(["HTTP request<br/>from the Power App"]):::trigger --> C["Compose joining-kit details<br/>from payload"]:::action
+    C --> RS["Respond to caller"]:::action
+    RS --> E("Send confirmation email"):::notify
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
 ```
