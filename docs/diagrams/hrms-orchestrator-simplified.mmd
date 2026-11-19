@@ -1,0 +1,25 @@
+flowchart TD
+    T(["Employee / position record<br/>created or modified"]):::trigger --> R{"On-roll or<br/>off-roll?"}:::decision
+
+    R -->|On-roll| ON{"Lifecycle<br/>status?"}:::decision
+    ON -->|Resigned| ON1["Exit docs → exit mailer<br/>→ vacancy → notice period"]:::action
+    ON -->|"Exited / offer rejected"| VAC1[("Create vacant position")]:::data
+    ON -->|Offer initiated| ON3["Salary breakup<br/>→ approval"]:::action
+    ON3 --> ON3a{"Approved?"}:::decision
+    ON3a -->|Yes| ON3y("Mark approved<br/>→ send offer email"):::notify
+    ON3a -->|No| ON3n[("Mark rejected")]:::data
+    ON3y --> ON3z("Offer-alert notification"):::notify
+    ON3n --> ON3z
+    ON -->|Accepted + joined| ON5["Joining confirmation → Word → PDF<br/>→ IT mail-ID request"]:::action
+
+    R -->|Off-roll| OFF{"Lifecycle<br/>status?"}:::decision
+    OFF -->|"Resigned / exited"| VAC2[("Create vacant position")]:::data
+    OFF -->|Offered| OFF3["Document set<br/>→ copy attachments → notify"]:::action
+    OFF -->|Joined + active| OFF4("Welcome / announcement card"):::notify
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
