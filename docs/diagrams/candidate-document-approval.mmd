@@ -1,9 +1,17 @@
 flowchart TD
-    T["Trigger: file created / modified<br/>in document library"] --> C{Pending review?}
-    C -->|Yes| A["Start &amp; wait for approval"]
-    A --> D{Approved?}
-    D -->|Yes| Y["Set content-approval status = Approved"]
-    D -->|No| N["Set status = Rejected<br/>&rarr; email uploader via shared mailbox"]
-    C -->|No| Z["Compose folder path, shareable link,<br/>leaf name &amp; mail ID"]
+    T(["File created / modified<br/>in candidate-documents library"]):::trigger --> C{"Pending<br/>review?"}:::decision
+    C -->|Yes| A["Start &amp; wait for approval"]:::action
+    A --> D{"Approved?"}:::decision
+    D -->|Yes| Y[("Set content-approval<br/>status = Approved")]:::data
+    D -->|No| N[("Set content-approval<br/>status = Rejected")]:::data
+    N --> NM("Email uploader<br/>via shared mailbox"):::notify
+    C -->|No| Z["Compose folder path, shareable link,<br/>leaf name &amp; mail ID"]:::action
     Y --> Z
-    N --> Z
+    NM --> Z
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
