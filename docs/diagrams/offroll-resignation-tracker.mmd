@@ -1,6 +1,19 @@
 flowchart TD
-    T["Trigger: vendor resignation email"] --> P["HTML &rarr; text<br/>extract employee ID + date of resignation<br/>reformat date"]
-    P --> G["Get matching rows from headcount/budget list"]
-    G --> L["For each match"]
-    L --> C{Record found?}
-    C -->|Yes| U["Update item: mark resignation + date"]
+    T(["Resignation alert email<br/>from staffing vendor"]):::trigger --> P["HTML → text<br/>extract employee ID + resignation date<br/>reformat date"]:::action
+    P --> G["Get matching rows<br/>from headcount/budget list"]:::action
+    G --> C
+
+    subgraph LOOP["Apply to each match"]
+        C{"Record<br/>found?"}:::decision
+        C -->|Yes| U[("Mark resignation + date")]:::data
+        C -->|No| S(["No change"]):::noop
+    end
+
+    style LOOP fill:none,stroke:#94a3b8,stroke-dasharray:6 4
+
+    classDef trigger fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef action fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef data fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef notify fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef noop fill:#ffffff,stroke:#94a3b8,stroke-dasharray:4 3,color:#64748b
