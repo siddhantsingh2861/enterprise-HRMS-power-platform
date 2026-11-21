@@ -1,0 +1,13 @@
+flowchart LR
+    S1["<b>1 · Position</b><br/>approved headcount<br/>sits vacant"]:::stage
+    S2["<b>2 · Offer</b><br/>HRMS Orchestrator<br/><i>offer approval</i>"]:::stage
+    S3["<b>3 · Pre-joining</b><br/>Candidate Document Approval<br/>Capture Joining-Kit Details"]:::stage
+    S4["<b>4 · Joining</b><br/>HRMS Orchestrator<br/>Capture HTTP Request<br/>Mail-ID &amp; Onboarding"]:::stage
+    S5["<b>5 · In role</b><br/>Attendance Tracking"]:::stage
+    S6["<b>6 · Separation</b><br/>HRMS Orchestrator<br/>Off-roll Resignation Tracker"]:::stage
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    S6 -->|"vacancy re-created"| S1
+    S2 -.->|"offer rejected"| S1
+
+    classDef stage fill:#f8fafc,stroke:#475569,color:#0f172a

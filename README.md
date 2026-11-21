@@ -3,8 +3,8 @@
 A production HR management system I designed and built **end-to-end, solo**, on the
 Microsoft Power Platform - SharePoint as the data layer, a Power Apps canvas app as
 the front end, **Power Automate as the automation/orchestration layer**, and Power BI
-for reporting. It runs the full employee lifecycle for an enterprise HR team: hiring,
-onboarding, separation, headcount, attendance, and downstream HRIS integration.
+for reporting. It runs the full employee and position lifecycle for an enterprise HR
+team: position management, hiring, onboarding, attendance, separation, and downstream HRIS sync.
 
 This repository is a **sanitized architecture case study**. It documents *how the system
 is designed and how the automation works* - it contains no company data, no
@@ -102,20 +102,54 @@ whole lifecycle without any flow needing to "remember" context between runs.
 
 ---
 
+## The employee lifecycle
+
+The system follows one loop: a position is approved, filled, managed, and vacated again.
+Every flow maps to a stage in that loop.
+
+```mermaid
+flowchart LR
+    S1["<b>1 · Position</b><br/>approved headcount<br/>sits vacant"]:::stage
+    S2["<b>2 · Offer</b><br/>HRMS Orchestrator<br/><i>offer approval</i>"]:::stage
+    S3["<b>3 · Pre-joining</b><br/>Candidate Document Approval<br/>Capture Joining-Kit Details"]:::stage
+    S4["<b>4 · Joining</b><br/>HRMS Orchestrator<br/>Capture HTTP Request<br/>Mail-ID &amp; Onboarding"]:::stage
+    S5["<b>5 · In role</b><br/>Attendance Tracking"]:::stage
+    S6["<b>6 · Separation</b><br/>HRMS Orchestrator<br/>Off-roll Resignation Tracker"]:::stage
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    S6 -->|"vacancy re-created"| S1
+    S2 -.->|"offer rejected"| S1
+
+    classDef stage fill:#f8fafc,stroke:#475569,color:#0f172a
+```
+
+| Stage | What happens | Flows |
+| --- | --- | --- |
+| **1 · Position** | An approved headcount slot sits on the headcount/budget list as vacant. This is where every hire starts. | SharePoint record (no flow) |
+| **2 · Offer** | HR initiates an offer on the record. Candidate details and salary breakup go for approval. On approval, the offer email goes out; an offer alert is sent either way. If the candidate declines, the vacancy is re-created. For off-roll hires, a document set is created and form attachments are copied in. | HRMS Orchestrator |
+| **3 · Pre-joining** | Each candidate document is approved or rejected, with the uploader notified on rejection. Joining-kit details submitted in the app are captured and confirmed. | Candidate Document Approval · Capture Joining-Kit Details |
+| **4 · Joining** | On joining: confirmation email, Word template → PDF, IT mail-ID request, reporting-manager lookup. The employee's actionable-card response is captured and a joining confirmation emailed. The new-joiner alert then generates HRIS import CSVs for SuccessFactors & HGS. Off-roll joiners get a welcome/announcement card. | HRMS Orchestrator · Capture HTTP Request · Mail-ID & Onboarding |
+| **5 · In role** | Attendance data arriving by email is parsed into the attendance list, with a confirmation reply. | Attendance Tracking |
+| **6 · Separation** | On-roll resignation: exit documents (NOC / NDC), exit mailer to HR + payroll, vacancy creation, notice-period details. Off-roll resignation alerts from the staffing vendor update the headcount list. On exit, the vacancy is re-created and the loop closes. | HRMS Orchestrator · Off-roll Resignation Tracker |
+
+---
+
 ## The flows
 
-Seven Power Automate flows make up the automation layer. Full per-flow breakdowns with
-diagrams are in **[docs/FLOWS.md](docs/FLOWS.md)**.
+Seven Power Automate flows, listed in the order they act on an employee. Each uses one
+of three trigger types: a SharePoint record changing state, an inbound email from a
+vendor or HRIS, or a direct call from the Power App. Full breakdowns with diagrams are
+in **[docs/FLOWS.md](docs/FLOWS.md)**.
 
-| Flow | Trigger | What it does | Key connectors |
-| --- | --- | --- | --- |
-| **HRMS Orchestrator** | SharePoint item created/modified | The lifecycle state machine - routes hiring approvals, generates the offer + mail-ID documents, creates vacancies on separation, and posts onboarding announcements, for both on-roll and off-roll employees | SharePoint, Approvals, Outlook, Word Online, OneDrive, Office 365 Users |
-| **Candidate Document Approval** | File created/modified in a document library | Sends an approval for an uploaded candidate document; on approve/reject sets SharePoint content-approval status and notifies via shared mailbox | SharePoint, Approvals, Outlook |
-| **Mail-ID & Onboarding** | New joiner alert email | Parses the joiner email, matches the record, generates the standard HRIS import templates (biographical, person-info, employment history, job history, e-code UDF) as CSV files, and requests mail-ID creation | SharePoint, Outlook, HTML→text conversion |
-| **Off-roll Resignation Tracker** | Resignation alert email (staffing vendor) | Extracts the employee ID and resignation date from the vendor email and updates the headcount/budget list | SharePoint, Outlook, HTML→text conversion |
-| **Attendance Tracking** | Attendance data email | Parses the attendance payload, writes rows to the attendance list, and replies with a confirmation adaptive card | SharePoint, Outlook |
-| **Capture HTTP Request** | HTTP request (called from the app) | Endpoint that updates an employee interaction on an actionable card (outlook) and emails a joining confirmation - lets the Power App trigger server-side work | SharePoint, Outlook |
-| **Capture Joining-Kit Details** | HTTP request (called from the app) | Lightweight endpoint that captures joining-kit form details and sends a confirmation | Outlook |
+| # | Flow | Stage | Trigger | What it does | Key connectors |
+| --- | --- | --- | --- | --- | --- |
+| 1 | **HRMS Orchestrator** | All stages | SharePoint item created/modified | The lifecycle state machine. Routes offer approvals, generates joining documents, creates vacancies on separation, and posts announcements, for both on-roll and off-roll employees | SharePoint, Approvals, Outlook, Word Online, OneDrive, Office 365 Users |
+| 2 | **Candidate Document Approval** | Pre-joining | File created/modified in the candidate-documents library | Sends each uploaded document for approval, sets SharePoint content-approval status, and notifies the uploader on rejection | SharePoint, Approvals, Outlook |
+| 3 | **Capture Joining-Kit Details** | Pre-joining | HTTP request from the app | Captures joining-kit form details and sends a confirmation | Outlook |
+| 4 | **Capture HTTP Request** | Joining | HTTP request from the app | Updates an employee interaction from an Outlook actionable card and emails a joining confirmation | SharePoint, Outlook |
+| 5 | **Mail-ID & Onboarding** | Joining | New-joiner alert email | Parses the joiner email, matches the record, generates HRIS import templates as CSV (biographical, person info, employment history, job history, e-code UDF), and emails the onboarding package | SharePoint, Outlook, HTML→text |
+| 6 | **Attendance Tracking** | In role | Attendance data email | Parses the attendance payload, writes rows to the attendance list, and replies with a confirmation card | SharePoint, Outlook |
+| 7 | **Off-roll Resignation Tracker** | Separation | Resignation alert email from the staffing vendor | Extracts employee ID and resignation date and records them on the headcount/budget list | SharePoint, Outlook, HTML→text |
 
 ---
 
@@ -184,6 +218,7 @@ flowchart TD
     ├── FLOWS.md                  ← per-flow breakdowns with diagrams
     └── diagrams/                 ← Mermaid source for each diagram
         ├── system-architecture.mmd
+        ├── employee-lifecycle.mmd
         ├── hrms-orchestrator.mmd
         ├── hrms-orchestrator-simplified.mmd
         ├── candidate-document-approval.mmd
